@@ -59,7 +59,7 @@ async fn call_chatgpt_api(api_key: &str, prompt: &str) -> Result<String, Box<dyn
     "messages": [
         {
         "role": "system",
-        "content": "You are a helpful assistant."
+        "content": "You summarize the video whose subtitles you are given. After the quick summary, provide a very detailed listing of each subject discussed and the corresponding timestamps where each subject can be found."
         },
         {
         "role": "user",
@@ -127,15 +127,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let subs = formatted_lines.join("\n");
-    //println!("{}", subs);
+    let cutoff = 400; // due to token limit, could be improved
+    let subs = formatted_lines[..cutoff].join("\n");
+    if formatted_lines.len() > cutoff {
+        let missing = formatted_lines.len() - cutoff;
+        let s = format!(
+            "Cut off {} subtitle line{}, to avoid hitting the token limit...\n",
+            missing,
+            if missing == 1 { "" } else { "s" }
+        );
+        stdout.write_all(s.as_bytes()).await?;
+        stdout.flush().await?;
+    }
 
     let api_key = String::from_utf8(tokio::fs::read("api_key.txt").await?)?;
 
     stdout.write_all(b"Asking for a summary...\n\n").await?;
     stdout.flush().await?;
-    let input = format!("Can you summarize the video whose subtitles are below? After the quick summary, provide a more detailed overview of the topics discussed in the video, and briefly touch on them. Then provide a very detailed listing of each subject discussed and the corresponding timestamps where each subject can be found.\n\nSUBTITLES START:\n{}\n\nSUBTITLES END\n", subs);
-    let response = call_chatgpt_api(&api_key, &input).await?;
+    let response = call_chatgpt_api(&api_key, &subs).await?;
     stdout.write_all(response.as_bytes()).await?;
     stdout.write_all(b"\n").await?;
     stdout.flush().await?;
