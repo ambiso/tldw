@@ -45,6 +45,13 @@ pub struct Message {
     pub content: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Response {
+    Success(Root),
+    Failure(Value),
+}
+
 async fn call_chatgpt_api(api_key: &str, prompt: &str) -> Result<String, Box<dyn Error>> {
     let endpoint = "https://api.openai.com/v1/chat/completions";
     let request_body: Value = json!({
@@ -70,11 +77,16 @@ async fn call_chatgpt_api(api_key: &str, prompt: &str) -> Result<String, Box<dyn
         .send()
         .await?;
 
-    let response_body: Root = response.json().await?;
-    //dbg!(response_body); Ok("".to_string())
-    let generated_text = response_body.choices[0].message.content.clone();
+    let response_body: Response = response.json().await?;
+    match response_body {
+        Response::Success(response_body) => {
+            Ok(response_body.choices[0].message.content.clone())
+        },
+        Response::Failure(err) => {
+            Ok(serde_json::to_string_pretty(&err).unwrap())
+        }
+    }
 
-    Ok(generated_text)
 }
 
 #[tokio::main]
