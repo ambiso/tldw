@@ -79,14 +79,9 @@ async fn call_chatgpt_api(api_key: &str, prompt: &str) -> Result<String, Box<dyn
 
     let response_body: Response = response.json().await?;
     match response_body {
-        Response::Success(response_body) => {
-            Ok(response_body.choices[0].message.content.clone())
-        },
-        Response::Failure(err) => {
-            Ok(serde_json::to_string_pretty(&err).unwrap())
-        }
+        Response::Success(response_body) => Ok(response_body.choices[0].message.content.clone()),
+        Response::Failure(err) => Ok(serde_json::to_string_pretty(&err).unwrap()),
     }
-
 }
 
 #[tokio::main]
