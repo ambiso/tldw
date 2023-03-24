@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let cutoff = 400; // due to token limit, could be improved
-    let subs = formatted_lines[..cutoff].join("\n");
+    let subs = formatted_lines[..cutoff.min(formatted_lines.len())].join("\n");
     if formatted_lines.len() > cutoff {
         let missing = formatted_lines.len() - cutoff;
         let s = format!(
